@@ -123,11 +123,31 @@ client.initialize();
 
 // Servidor HTTP básico para Render
 const server = http.createServer((req, res) => {
-    res.writeHead(200, { "Content-Type": "text/plain" });
-    res.end("WhatsApp Bot is running...");
+    if (req.url === "/ping") {
+        res.writeHead(200, { "Content-Type": "text/plain" });
+        res.end("pong");
+    } else {
+        res.writeHead(200, { "Content-Type": "text/plain" });
+        res.end("WhatsApp Bot is running...");
+    }
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Servidor escuchando en el puerto ${PORT}`);
 });
+
+// Función para hacer ping al servidor cada 10 minutos
+function keepAlive() {
+    const url = `http://localhost:${PORT}/ping`; // Usa la URL de tu aplicación en Render si es diferente
+    axios.get(url)
+        .then(response => {
+            console.log("Ping exitoso:", response.data);
+        })
+        .catch(error => {
+            console.error("Error al hacer ping:", error.message);
+        });
+}
+
+// Ejecutar keepAlive cada 10 minutos (600,000 milisegundos)
+setInterval(keepAlive, 600000); // 10 minutos
