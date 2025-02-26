@@ -2,6 +2,7 @@ const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
 const axios = require("axios");
 const moment = require("moment");
+const http = require("http");
 
 const client = new Client({
     authStrategy: new LocalAuth(),
@@ -17,7 +18,9 @@ client.on("ready", () => {
     console.log("Tu ID de WhatsApp es:", client.info.wid._serialized);
 });
 
-const myChatId = "50370119436@c.us";
+// Usar variables de entorno
+const myChatId = process.env.MY_CHAT_ID;
+const webhookUrl = process.env.WEBHOOK_URL;
 
 function extraerInformacion(texto) {
     // Expresión regular con más palabras clave y variantes
@@ -84,13 +87,18 @@ client.on("message_create", async (message) => {
                 console.log("Mensaje interpretado como evento:", mensajeInterpretado);
 
                 try {
-                    const response = await axios.post(
-                        "https://hook.eu2.make.com/9n8fmy9aht70rc4v43ujxo2l1m19xx2p",
-                        mensajeInterpretado
-                    );
+                    console.log("Enviando datos a Make.com...");
+                    const response = await axios.post(webhookUrl, mensajeInterpretado, {
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                    });
                     console.log("Datos enviados a Make.com:", response.data);
                 } catch (error) {
                     console.error("Error al enviar datos a Make.com:", error.message);
+                    if (error.response) {
+                        console.error("Respuesta del servidor:", error.response.data);
+                    }
                 }
             } else {
                 console.log("El mensaje no es para agregar un evento y será ignorado.");
@@ -112,3 +120,14 @@ client.on("disconnected", (reason) => {
 });
 
 client.initialize();
+
+// Servidor HTTP básico para Render
+const server = http.createServer((req, res) => {
+    res.writeHead(200, { "Content-Type": "text/plain" });
+    res.end("WhatsApp Bot is running...");
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`Servidor escuchando en el puerto ${PORT}`);
+});
